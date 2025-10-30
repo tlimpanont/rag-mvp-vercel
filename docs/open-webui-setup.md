@@ -56,10 +56,12 @@ If running your RAG MVP locally on port 3000:
 
 1. **Access Open WebUI**: Navigate to http://localhost:3001
 2. **Admin Settings**: Go to Admin Panel → Settings → Connections
-3. **Add Custom Model**: Configure a custom model endpoint:
+3. **Add OpenAI API**: Configure OpenAI-compatible endpoint:
    - **Name**: `RAG-MVP`
    - **Base URL**: `http://host.docker.internal:3000/api`
    - **API Key**: Your `RAG_API_KEY` from `.env.local`
+
+**Important**: Use the `/api/chat/completions` endpoint for full compatibility.
 
 ### Option 2: Deployed RAG Server (Vercel)
 
@@ -67,7 +69,7 @@ If using your deployed Vercel instance:
 
 1. **Access Open WebUI**: Navigate to http://localhost:3001
 2. **Admin Settings**: Go to Admin Panel → Settings → Connections
-3. **Add Custom Model**: Configure a custom model endpoint:
+3. **Add OpenAI API**: Configure OpenAI-compatible endpoint:
    - **Name**: `RAG-MVP-Production`
    - **Base URL**: `https://your-rag-mvp-vercel.vercel.app/api`
    - **API Key**: Your `RAG_API_KEY`
