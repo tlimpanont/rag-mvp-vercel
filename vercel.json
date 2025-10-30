@@ -2,14 +2,14 @@
   "crons": [
     {
       "path": "/api/ingestion/worker",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 2 * * *"
     }
   ],
   "functions": {
-    "api/rag/query.ts": {
+    "app/api/rag/query/route.ts": {
       "maxDuration": 30
     },
-    "api/ingestion/worker.ts": {
+    "app/api/ingestion/worker/route.ts": {
       "maxDuration": 300
     }
   }

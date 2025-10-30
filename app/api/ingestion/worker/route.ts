@@ -5,15 +5,15 @@
  * Triggered by: Vercel Cron Job (every 6 hours)
  */
 
-import { NextRequest } from 'next/server';
-import { sql } from '@vercel/postgres';
-import { list } from '@vercel/blob';
+import { NextRequest } from "next/server";
+import { list } from "@vercel/blob";
+import { getPostgresClient } from "@/lib/clients";
 import type {
   IngestionWorkerResponse,
   IngestionError,
   DocumentToIngest,
   VectorDocument,
-} from '@/types';
+} from "@/types";
 import {
   createErrorResponse,
   handleError,
@@ -21,9 +21,9 @@ import {
   upsertVectors,
   chunkText,
   Timer,
-} from '@/lib/utils';
+} from "@/lib/utils";
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
@@ -38,23 +38,19 @@ export async function POST(request: NextRequest) {
 
   try {
     // ==================== 1. Verify Cron Secret (Optional Security) ====================
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.warn('[Ingestion Worker] Unauthorized cron execution attempt');
-      return createErrorResponse(
-        'Unauthorized',
-        'Invalid cron secret',
-        401
-      );
+      console.warn("[Ingestion Worker] Unauthorized cron execution attempt");
+      return createErrorResponse("Unauthorized", "Invalid cron secret", 401);
     }
 
     // ==================== 2. Fetch Unprocessed Documents ====================
     const documents = await fetchUnprocessedDocuments();
 
     if (documents.length === 0) {
-      console.log('[Ingestion Worker] No documents to process');
+      console.log("[Ingestion Worker] No documents to process");
       return Response.json({
         success: true,
         jobId,
@@ -82,7 +78,7 @@ export async function POST(request: NextRequest) {
         );
         errors.push({
           documentId: document.id,
-          message: error instanceof Error ? error.message : 'Unknown error',
+          message: error instanceof Error ? error.message : "Unknown error",
           timestamp: new Date().toISOString(),
         });
       }
@@ -106,11 +102,11 @@ export async function POST(request: NextRequest) {
     return Response.json(response, {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
   } catch (error) {
-    console.error('[Ingestion Worker] Critical error:', error);
+    console.error("[Ingestion Worker] Critical error:", error);
     return handleError(error);
   }
 }
@@ -130,7 +126,7 @@ async function fetchUnprocessedDocuments(): Promise<DocumentToIngest[]> {
     for (const blob of blobs) {
       // Check if already indexed
       const isIndexed = await checkIfIndexed(blob.pathname);
-      
+
       if (!isIndexed) {
         // Fetch blob content
         const response = await fetch(blob.url);
@@ -143,7 +139,7 @@ async function fetchUnprocessedDocuments(): Promise<DocumentToIngest[]> {
             title: blob.pathname,
             url: blob.url,
             createdAt: blob.uploadedAt.toISOString(),
-            documentType: 'blob',
+            documentType: "blob",
           },
           blobUrl: blob.url,
         });
@@ -152,7 +148,8 @@ async function fetchUnprocessedDocuments(): Promise<DocumentToIngest[]> {
 
     // ==================== Fetch from Vercel Postgres ====================
     // Example: Fetch documents marked as 'pending' in a database table
-    const result = await sql`
+    const postgres = getPostgresClient();
+    const result = await postgres.sql`
       SELECT id, content, metadata, created_at
       FROM documents
       WHERE indexed_at IS NULL
@@ -166,12 +163,12 @@ async function fetchUnprocessedDocuments(): Promise<DocumentToIngest[]> {
         metadata: {
           ...(row.metadata as Record<string, unknown>),
           createdAt: (row.created_at as Date).toISOString(),
-          documentType: 'database',
+          documentType: "database",
         },
       });
     }
   } catch (error) {
-    console.error('[Fetch Documents] Error:', error);
+    console.error("[Fetch Documents] Error:", error);
     // Return empty array if fetch fails, don't throw
   }
 
@@ -183,10 +180,11 @@ async function fetchUnprocessedDocuments(): Promise<DocumentToIngest[]> {
  */
 async function checkIfIndexed(documentId: string): Promise<boolean> {
   try {
-    const result = await sql`
+    const postgres = getPostgresClient();
+    const result = await postgres.sql`
       SELECT indexed_at FROM documents WHERE id = ${documentId}
     `;
-    
+
     return result.rows.length > 0 && result.rows[0].indexed_at !== null;
   } catch {
     return false;
@@ -224,7 +222,8 @@ async function processDocument(document: DocumentToIngest): Promise<void> {
 
   // ==================== 5. Mark as Indexed in Database ====================
   try {
-    await sql`
+    const postgres = getPostgresClient();
+    await postgres.sql`
       UPDATE documents
       SET indexed_at = NOW()
       WHERE id = ${document.id}
@@ -247,10 +246,11 @@ async function updateJobStatus(
   errors: IngestionError[]
 ): Promise<void> {
   try {
-    const status = errors.length === 0 ? 'completed' : 'failed';
+    const status = errors.length === 0 ? "completed" : "failed";
     const errorLog = errors.length > 0 ? JSON.stringify(errors) : null;
 
-    await sql`
+    const postgres = getPostgresClient();
+    await postgres.sql`
       INSERT INTO ingestion_jobs (
         id,
         status,
@@ -270,7 +270,7 @@ async function updateJobStatus(
       )
     `;
   } catch (error) {
-    console.error('[Update Job Status] Error:', error);
+    console.error("[Update Job Status] Error:", error);
     // Don't throw, just log
   }
 }
@@ -281,9 +281,10 @@ async function updateJobStatus(
  */
 export async function GET() {
   return Response.json({
-    status: 'ready',
-    service: 'Ingestion Worker',
-    message: 'This endpoint is triggered by Vercel Cron. Use POST to manually trigger.',
+    status: "ready",
+    service: "Ingestion Worker",
+    message:
+      "This endpoint is triggered by Vercel Cron. Use POST to manually trigger.",
     timestamp: new Date().toISOString(),
   });
 }
