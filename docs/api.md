@@ -294,34 +294,6 @@ result = query_rag(
 print(result['answer'])
 ```
 
-## Integration with Open WebUI
-
-Configure Open WebUI to use this RAG service:
-
-1. Open WebUI Settings → **Knowledge** → **External RAG**
-2. Set **Endpoint**: `https://your-domain.vercel.app/api/rag/query`
-3. Add **Header**: `Authorization: Bearer your-api-key`
-4. Set **Method**: POST
-5. Test connection
-
-### Open WebUI Configuration
-
-```json
-{
-  "endpoint": "https://your-domain.vercel.app/api/rag/query",
-  "method": "POST",
-  "headers": {
-    "Authorization": "Bearer your-api-key",
-    "Content-Type": "application/json"
-  },
-  "bodyTemplate": {
-    "query": "{{query}}",
-    "maxResults": 5,
-    "includeMetadata": true
-  }
-}
-```
-
 ## API Rate Limits & Best Practices
 
 ### Rate Limits

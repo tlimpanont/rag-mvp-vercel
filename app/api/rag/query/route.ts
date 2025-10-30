@@ -2,7 +2,7 @@
  * RAG Query Service - Vercel Serverless Function
  * Endpoint: POST /api/rag/query
  * Purpose: Handle user queries with vector search + LLM generation
- * Exposed to: Open WebUI or other external clients
+ * Exposed to: External clients via API
  */
 
 import { NextRequest } from "next/server";

@@ -33,16 +33,6 @@ Start here if you're new to the project:
 - Testing and integration examples
 - Rate limiting and best practices
 
-### 🖥️ **User Interface**
-
-**[Open WebUI Setup](./open-webui-setup.md)**
-
-- Docker container setup and configuration
-- Integration with RAG server (local and production)
-- User interface for RAG interactions
-- ChatGPT-like experience for your RAG system
-- Troubleshooting and maintenance
-
 ### 💼 **Business Case**
 
 **[Business Case & Use Cases](./business-case.md)**
@@ -70,7 +60,6 @@ Start here if you're new to the project:
 
 - **Setting up the project**: [Setup Guide](./setup.md)
 - **Making API calls**: [API Documentation](./api.md#rag-query-service)
-- **Setting up Open WebUI**: [Open WebUI Setup](./open-webui-setup.md)
 - **Understanding business value**: [Business Case](./business-case.md#business-case--roi)
 - **Development workflow**: [Technical Documentation](./technical.md#development)
 - **Troubleshooting issues**: [Technical Documentation](./technical.md#troubleshooting)
@@ -80,7 +69,6 @@ Start here if you're new to the project:
 - **cURL examples**: [API Documentation](./api.md#request-format)
 - **JavaScript/TypeScript**: [API Documentation](./api.md#integration-testing)
 - **Python integration**: [API Documentation](./api.md#using-python)
-- **Open WebUI integration**: [Open WebUI Setup](./open-webui-setup.md)
 
 ### Configuration References
 
@@ -94,10 +82,9 @@ Start here if you're new to the project:
 ### For Developers
 
 1. **Setup**: Follow the [Setup Guide](./setup.md)
-2. **UI Setup**: Configure [Open WebUI](./open-webui-setup.md) for testing
-3. **Development**: Reference [Technical Documentation](./technical.md#development)
-4. **API Integration**: Use [API Documentation](./api.md)
-5. **Deployment**: Follow [Setup Guide](./setup.md#deployment)
+2. **Development**: Reference [Technical Documentation](./technical.md#development)
+3. **API Integration**: Use [API Documentation](./api.md)
+4. **Deployment**: Follow [Setup Guide](./setup.md#deployment)
 
 ### For Business Stakeholders
 
