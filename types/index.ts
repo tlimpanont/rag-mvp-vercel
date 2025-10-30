@@ -30,7 +30,8 @@ export interface DocumentMetadata {
   createdAt?: string;
   updatedAt?: string;
   documentType?: string;
-  [key: string]: unknown;
+  content?: string;
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 export interface QueryMetadata {
@@ -53,11 +54,7 @@ export interface IngestionJob {
   errors?: IngestionError[];
 }
 
-export type IngestionStatus = 
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'failed';
+export type IngestionStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface IngestionError {
   documentId: string;
@@ -85,17 +82,13 @@ export interface IngestionWorkerResponse {
 export interface VectorDocument {
   id: string;
   values: number[];
-  metadata: DocumentMetadata & {
-    content: string;
-  };
+  metadata: Record<string, unknown>;
 }
 
 export interface VectorSearchResult {
   id: string;
   score: number;
-  metadata: DocumentMetadata & {
-    content: string;
-  };
+  metadata: Record<string, unknown>;
 }
 
 export interface VectorUpsertResult {

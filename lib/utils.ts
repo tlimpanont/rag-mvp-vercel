@@ -2,37 +2,41 @@
  * Utility Functions for RAG MVP
  */
 
-import { NextRequest } from 'next/server';
-import { getOpenAIClient, getPineconeIndex } from './clients';
+import { NextRequest } from "next/server";
+import { getOpenAIClient, getPineconeIndex } from "./clients";
 import type {
   EmbeddingResponse,
   VectorSearchResult,
   VectorDocument,
   VectorUpsertResult,
   APIErrorResponse,
-} from '@/types';
+  DocumentMetadata,
+} from "@/types";
 
 // ==================== Configuration ====================
 
 export function getRAGConfig() {
   return {
-    embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
-    embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '1536', 10),
-    llmModel: process.env.LLM_MODEL || 'gpt-4-turbo-preview',
-    topKResults: parseInt(process.env.TOP_K_RESULTS || '5', 10),
-    pineconeIndexName: process.env.PINECONE_INDEX_NAME || '',
-    pineconeEnvironment: process.env.PINECONE_ENVIRONMENT || '',
+    embeddingModel: process.env.EMBEDDING_MODEL || "text-embedding-3-small",
+    embeddingDimensions: parseInt(
+      process.env.EMBEDDING_DIMENSIONS || "1536",
+      10
+    ),
+    llmModel: process.env.LLM_MODEL || "gpt-4-turbo-preview",
+    topKResults: parseInt(process.env.TOP_K_RESULTS || "5", 10),
+    pineconeIndexName: process.env.PINECONE_INDEX_NAME || "",
+    pineconeEnvironment: process.env.PINECONE_ENVIRONMENT || "",
   };
 }
 
 // ==================== API Key Validation ====================
 
 export function validateAPIKey(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
+  const authHeader = request.headers.get("authorization");
   const expectedKey = process.env.RAG_API_KEY;
 
   if (!expectedKey) {
-    console.error('[Auth] RAG_API_KEY environment variable not set');
+    console.error("[Auth] RAG_API_KEY environment variable not set");
     return false;
   }
 
@@ -41,7 +45,7 @@ export function validateAPIKey(request: NextRequest): boolean {
   }
 
   // Support both "Bearer <key>" and plain "<key>" formats
-  const providedKey = authHeader.startsWith('Bearer ')
+  const providedKey = authHeader.startsWith("Bearer ")
     ? authHeader.slice(7)
     : authHeader;
 
@@ -66,19 +70,15 @@ export function createErrorResponse(
 }
 
 export function handleError(error: unknown): Response {
-  console.error('[Error Handler]', error);
+  console.error("[Error Handler]", error);
 
   if (error instanceof Error) {
-    return createErrorResponse(
-      'InternalServerError',
-      error.message,
-      500
-    );
+    return createErrorResponse("InternalServerError", error.message, 500);
   }
 
   return createErrorResponse(
-    'UnknownError',
-    'An unexpected error occurred',
+    "UnknownError",
+    "An unexpected error occurred",
     500
   );
 }
@@ -106,7 +106,7 @@ export async function generateEmbedding(
       tokensUsed: response.usage.total_tokens,
     };
   } catch (error) {
-    console.error('[Embedding Error]', error);
+    console.error("[Embedding Error]", error);
     throw new Error(`Failed to generate embedding: ${error}`);
   }
 }
@@ -128,7 +128,7 @@ export async function generateEmbeddingsBatch(
 
     return response.data.map((item) => item.embedding);
   } catch (error) {
-    console.error('[Batch Embedding Error]', error);
+    console.error("[Batch Embedding Error]", error);
     throw new Error(`Failed to generate batch embeddings: ${error}`);
   }
 }
@@ -155,16 +155,39 @@ export async function vectorSearch(
       queryResponse.matches?.map((match) => ({
         id: match.id,
         score: match.score || 0,
-        metadata: match.metadata as VectorSearchResult['metadata'],
+        metadata: match.metadata || {},
       })) || []
     );
   } catch (error) {
-    console.error('[Vector Search Error]', error);
+    console.error("[Vector Search Error]", error);
     throw new Error(`Vector search failed: ${error}`);
   }
 }
 
 // ==================== Vector Upsert Functions ====================
+
+export function createVectorDocument(
+  id: string,
+  values: number[],
+  content: string,
+  metadata: DocumentMetadata = {}
+): VectorDocument {
+  return {
+    id,
+    values,
+    metadata: {
+      ...metadata,
+      content,
+    },
+  };
+}
+
+export function extractContentFromSearchResult(
+  result: VectorSearchResult
+): string {
+  const content = result.metadata?.content;
+  return typeof content === "string" ? content : "";
+}
 
 export async function upsertVectors(
   documents: VectorDocument[]
@@ -175,7 +198,10 @@ export async function upsertVectors(
     const vectors = documents.map((doc) => ({
       id: doc.id,
       values: doc.values,
-      metadata: doc.metadata,
+      metadata: doc.metadata as Record<
+        string,
+        string | number | boolean | string[]
+      >,
     }));
 
     await index.upsert(vectors);
@@ -184,7 +210,7 @@ export async function upsertVectors(
       upsertedCount: documents.length,
     };
   } catch (error) {
-    console.error('[Vector Upsert Error]', error);
+    console.error("[Vector Upsert Error]", error);
     throw new Error(`Failed to upsert vectors: ${error}`);
   }
 }
@@ -194,7 +220,7 @@ export async function upsertVectors(
 export function chunkText(text: string, chunkSize: number = 1000): string[] {
   const chunks: string[] = [];
   const words = text.split(/\s+/);
-  
+
   let currentChunk: string[] = [];
   let currentLength = 0;
 
@@ -202,7 +228,7 @@ export function chunkText(text: string, chunkSize: number = 1000): string[] {
     const wordLength = word.length + 1; // +1 for space
 
     if (currentLength + wordLength > chunkSize && currentChunk.length > 0) {
-      chunks.push(currentChunk.join(' '));
+      chunks.push(currentChunk.join(" "));
       currentChunk = [word];
       currentLength = wordLength;
     } else {
@@ -212,7 +238,7 @@ export function chunkText(text: string, chunkSize: number = 1000): string[] {
   }
 
   if (currentChunk.length > 0) {
-    chunks.push(currentChunk.join(' '));
+    chunks.push(currentChunk.join(" "));
   }
 
   return chunks;
@@ -231,7 +257,7 @@ export async function generateRAGResponse(
 If the context doesn't contain enough information to answer the question, say so.
 Be concise and accurate.`;
 
-  const contextText = context.join('\n\n---\n\n');
+  const contextText = context.join("\n\n---\n\n");
 
   const userPrompt = `Context:\n${contextText}\n\nQuestion: ${query}\n\nAnswer:`;
 
@@ -239,19 +265,19 @@ Be concise and accurate.`;
     const response = await openai.chat.completions.create({
       model: config.llmModel,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
       max_tokens: 1000,
     });
 
     return {
-      answer: response.choices[0]?.message?.content || 'No response generated',
+      answer: response.choices[0]?.message?.content || "No response generated",
       tokensUsed: response.usage?.total_tokens || 0,
     };
   } catch (error) {
-    console.error('[LLM Generation Error]', error);
+    console.error("[LLM Generation Error]", error);
     throw new Error(`Failed to generate response: ${error}`);
   }
 }

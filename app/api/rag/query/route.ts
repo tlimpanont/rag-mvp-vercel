@@ -5,12 +5,12 @@
  * Exposed to: Open WebUI or other external clients
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest } from "next/server";
 import type {
   RAGQueryRequest,
   RAGQueryResponse,
   DocumentSource,
-} from '@/types';
+} from "@/types";
 import {
   validateAPIKey,
   createErrorResponse,
@@ -18,11 +18,12 @@ import {
   generateEmbedding,
   vectorSearch,
   generateRAGResponse,
+  extractContentFromSearchResult,
   Timer,
   getRAGConfig,
-} from '@/lib/utils';
+} from "@/lib/utils";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 export const maxDuration = 30;
 
 /**
@@ -35,38 +36,40 @@ export async function POST(request: NextRequest) {
   try {
     // ==================== 1. API Key Validation ====================
     if (!validateAPIKey(request)) {
-      console.warn('[RAG Query] Unauthorized access attempt');
+      console.warn("[RAG Query] Unauthorized access attempt");
       return createErrorResponse(
-        'Unauthorized',
-        'Invalid or missing API key',
+        "Unauthorized",
+        "Invalid or missing API key",
         401
       );
     }
 
     // ==================== 2. Parse Request Body ====================
     let body: RAGQueryRequest;
-    
+
     try {
       body = await request.json();
     } catch {
       return createErrorResponse(
-        'BadRequest',
-        'Invalid JSON in request body',
+        "BadRequest",
+        "Invalid JSON in request body",
         400
       );
     }
 
     const { query, maxResults, includeMetadata = true } = body;
 
-    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+    if (!query || typeof query !== "string" || query.trim().length === 0) {
       return createErrorResponse(
-        'BadRequest',
-        'Query parameter is required and must be a non-empty string',
+        "BadRequest",
+        "Query parameter is required and must be a non-empty string",
         400
       );
     }
 
-    console.log(`[RAG Query] Processing query: "${query.substring(0, 100)}..."`);
+    console.log(
+      `[RAG Query] Processing query: "${query.substring(0, 100)}..."`
+    );
 
     const config = getRAGConfig();
 
@@ -91,7 +94,8 @@ export async function POST(request: NextRequest) {
 
     if (searchResults.length === 0) {
       return Response.json({
-        answer: "I couldn't find any relevant information to answer your question.",
+        answer:
+          "I couldn't find any relevant information to answer your question.",
         sources: [],
         metadata: {
           queryProcessingTimeMs: totalTimer.elapsed(),
@@ -104,8 +108,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ==================== 5. Prepare Context for LLM ====================
-    const contextTexts = searchResults.map(
-      (result) => result.metadata.content
+    const contextTexts = searchResults.map((result) =>
+      extractContentFromSearchResult(result)
     );
 
     // ==================== 6. Generate Answer with LLM ====================
@@ -118,15 +122,30 @@ export async function POST(request: NextRequest) {
     // ==================== 7. Format Response ====================
     const sources: DocumentSource[] = searchResults.map((result) => ({
       id: result.id,
-      content: result.metadata.content,
+      content: extractContentFromSearchResult(result),
       score: result.score,
       metadata: includeMetadata
         ? {
-            title: result.metadata.title,
-            url: result.metadata.url,
-            createdAt: result.metadata.createdAt,
-            updatedAt: result.metadata.updatedAt,
-            documentType: result.metadata.documentType,
+            title:
+              typeof result.metadata.title === "string"
+                ? result.metadata.title
+                : undefined,
+            url:
+              typeof result.metadata.url === "string"
+                ? result.metadata.url
+                : undefined,
+            createdAt:
+              typeof result.metadata.createdAt === "string"
+                ? result.metadata.createdAt
+                : undefined,
+            updatedAt:
+              typeof result.metadata.updatedAt === "string"
+                ? result.metadata.updatedAt
+                : undefined,
+            documentType:
+              typeof result.metadata.documentType === "string"
+                ? result.metadata.documentType
+                : undefined,
           }
         : {},
     }));
@@ -143,19 +162,17 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    console.log(
-      `[RAG Query] Total processing time: ${totalTimer.elapsed()}ms`
-    );
+    console.log(`[RAG Query] Total processing time: ${totalTimer.elapsed()}ms`);
 
     return Response.json(response, {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
-        'X-Processing-Time-Ms': totalTimer.elapsed().toString(),
+        "Content-Type": "application/json",
+        "X-Processing-Time-Ms": totalTimer.elapsed().toString(),
       },
     });
   } catch (error) {
-    console.error('[RAG Query] Error:', error);
+    console.error("[RAG Query] Error:", error);
     return handleError(error);
   }
 }
@@ -168,15 +185,15 @@ export async function GET(request: NextRequest) {
   // Optional: Add health check logic
   if (!validateAPIKey(request)) {
     return createErrorResponse(
-      'Unauthorized',
-      'Invalid or missing API key',
+      "Unauthorized",
+      "Invalid or missing API key",
       401
     );
   }
 
   return Response.json({
-    status: 'healthy',
-    service: 'RAG Query Service',
+    status: "healthy",
+    service: "RAG Query Service",
     timestamp: new Date().toISOString(),
   });
 }
